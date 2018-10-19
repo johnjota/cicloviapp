@@ -1,56 +1,39 @@
-import { Component } from '@angular/core';
-import { Geolocation, Geoposition } from '@ionic-native/geolocation';
-
-declare var google;
+import { Component, ViewChild, ElementRef } from '@angular/core';
+import { LoadingController } from 'ionic-angular';
+import leaflet from 'leaflet';
 
 @Component({
   selector: 'page-hello-ionic',
   templateUrl: 'hello-ionic.html'
 })
 export class HelloIonicPage {
+  @ViewChild('map') mapContainer: ElementRef;
   map: any;
-  
+
   constructor(
-    private geolocation: Geolocation
-  ) {}
+    public loadingCtrl: LoadingController
+  ) { }
 
-  ionViewDidLoad(){
-    this.getPosition();
+  ionViewDidLoad() {
+    this.loadMap();
   }
 
-  getPosition():any{
-    this.geolocation.getCurrentPosition().then(response => {
-      this.loadMap(response);
+  loadMap() {
+    this.map = leaflet.map("map").fitWorld();
+    leaflet.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attributions: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    }).addTo(this.map);
+    this.map.locate({
+      setView: true,
+    }).on('locationfound', (e) => {
+      let markerGroup = leaflet.featureGroup();
+      let marker: any = leaflet.marker([e.latitude, e.longitude]).on('click', () => {
+        alert('Marker clicked');
+      })
+      markerGroup.addLayer(marker);
+      this.map.addLayer(markerGroup);
+    }).on('locationerror', (err) => {
+      alert(err.message);
     })
-    .catch(error =>{
-      console.log(error);
-    })
-  }
-
-  loadMap(position: Geoposition){
-    let latitude = position.coords.latitude;
-    let longitude = position.coords.longitude;
-    console.log(latitude, longitude);
-    
-    // create a new map by passing HTMLElement
-    let mapEle: HTMLElement = document.getElementById('map');
-  
-    // create LatLng object
-    let myLatLng = {lat: latitude, lng: longitude};
-  
-    // create map
-    this.map = new google.maps.Map(mapEle, {
-      center: myLatLng,
-      zoom: 12
-    });
-  
-    google.maps.event.addListenerOnce(this.map, 'idle', () => {
-      let marker = new google.maps.Marker({
-        position: myLatLng,
-        map: this.map,
-        title: 'Hello World!'
-      });
-      mapEle.classList.add('show-map');
-    });
   }
 }
