@@ -1,6 +1,7 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 import { LoadingController } from 'ionic-angular';
 import leaflet from 'leaflet';
+import 'leaflet-routing-machine';
 
 @Component({
   selector: 'page-hello-ionic',
@@ -9,6 +10,9 @@ import leaflet from 'leaflet';
 export class HelloIonicPage {
   @ViewChild('map') mapContainer: ElementRef;
   map: any;
+  markInit: any;
+  markEnd: any;
+  markerGroup: any;
 
   constructor(
     public loadingCtrl: LoadingController
@@ -19,21 +23,34 @@ export class HelloIonicPage {
   }
 
   loadMap() {
-    this.map = leaflet.map("map").fitWorld();
-    leaflet.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attributions: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    this.map = leaflet.map("map"); //.fitWorld();
+    leaflet.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(this.map);
     this.map.locate({
       setView: true,
     }).on('locationfound', (e) => {
-      let markerGroup = leaflet.featureGroup();
-      let marker: any = leaflet.marker([e.latitude, e.longitude]).on('click', () => {
+      this.markerGroup = leaflet.featureGroup();
+      this.markInit = leaflet.marker([e.latitude, e.longitude]).on('click', () => {
         alert('Marker clicked');
       })
-      markerGroup.addLayer(marker);
-      this.map.addLayer(markerGroup);
+      this.markerGroup.addLayer(this.markInit);
+      this.map.addLayer(this.markerGroup);
     }).on('locationerror', (err) => {
       alert(err.message);
+    }).on('click', (e) => {
+      if (this.markEnd != null) {
+        this.map.removeLayer(this.markEnd);
+      }
+      this.markEnd = leaflet.marker(e.latlng);
+      this.markerGroup.addLayer(this.markEnd);
+      var curPos = this.markInit.getLatLng();
+      leaflet.Routing.control({
+        waypoints: [
+          leaflet.latLng(curPos.lat, curPos.lng),
+          leaflet.latLng(e.latlng)
+        ]
+      }).addTo(this.map);
     })
   }
 }
